@@ -195,6 +195,7 @@ export const quizSessions = pgTable(
 // Replaces the localStorage-based settings in adminStore.ts.
 
 export const siteSettings = pgTable('site_settings', {
+  // ── Core columns (present in all deployments) ──────────────────────────────
   id: uuid('id').primaryKey().defaultRandom(),
   siteName: text('site_name').notNull().default('Quizoi'),
   siteDescription: text('site_description')
@@ -202,18 +203,21 @@ export const siteSettings = pgTable('site_settings', {
     .default('Free online quizzes on every topic imaginable.'),
   adsensePublisherId: text('adsense_publisher_id').notNull().default(''),
   adsenseAutoAds: boolean('adsense_auto_ads').notNull().default(false),
-  analyticsId: text('analytics_id').notNull().default(''),
   headerCode: text('header_code').notNull().default(''),
   footerCode: text('footer_code').notNull().default(''),
   customCss: text('custom_css').notNull().default(''),
   maintenanceMode: boolean('maintenance_mode').notNull().default(false),
-  adSlotLeaderboard: text('ad_slot_leaderboard').notNull().default(''),
-  adSlotRectangle: text('ad_slot_rectangle').notNull().default(''),
-  adSlotLargeRectangle: text('ad_slot_large_rectangle').notNull().default(''),
-  adSlotBanner: text('ad_slot_banner').notNull().default(''),
   updatedAt: timestamp('updated_at', { withTimezone: true })
     .notNull()
     .defaultNow(),
+  // ── Optional columns (added in migration 0002) ─────────────────────────────
+  // These are handled via raw SQL in queries.ts until the migration is applied.
+  // Uncomment after running: db/migrations/0002_add_settings_columns.sql
+  // analyticsId: text('analytics_id').notNull().default(''),
+  // adSlotLeaderboard: text('ad_slot_leaderboard').notNull().default(''),
+  // adSlotRectangle: text('ad_slot_rectangle').notNull().default(''),
+  // adSlotLargeRectangle: text('ad_slot_large_rectangle').notNull().default(''),
+  // adSlotBanner: text('ad_slot_banner').notNull().default(''),
 });
 
 // ─── Relations ────────────────────────────────────────────────────────────────

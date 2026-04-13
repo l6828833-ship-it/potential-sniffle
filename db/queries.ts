@@ -416,30 +416,161 @@ export async function getDailyStats(days = 30) {
 }
 
 // ─── Site Settings ────────────────────────────────────────────────────────────
+// Uses the Drizzle ORM for core columns (always present) and gracefully
+// ignores optional columns (analytics_id, ad_slot_*) that may not yet
+// exist in the live database until migration 0002 is applied.
+
+/** camelCase fields that map to optional DB columns (added in migration 0002) */
+const OPTIONAL_FIELDS = new Set([
+  'analyticsId', 'adSlotLeaderboard', 'adSlotRectangle', 'adSlotLargeRectangle', 'adSlotBanner',
+]);
+
+/** Cache: which optional columns actually exist in the live DB */
+let _optionalColsCache: Set<string> | null = null;
+
+async function getOptionalCols(): Promise<Set<string>> {
+  if (_optionalColsCache !== null) return _optionalColsCache;
+  try {
+    const rows = await db.execute(
+      sql`SELECT column_name
+          FROM information_schema.columns
+          WHERE table_name = 'site_settings'
+            AND column_name IN (
+              'analytics_id','ad_slot_leaderboard','ad_slot_rectangle',
+              'ad_slot_large_rectangle','ad_slot_banner'
+            )`
+    ) as unknown as Array<{ column_name: string }>;
+    // postgres-js returns the rows directly as an array
+    const names = Array.isArray(rows) ? rows.map(r => r.column_name) : [];
+    _optionalColsCache = new Set(names);
+  } catch {
+    _optionalColsCache = new Set();
+  }
+  return _optionalColsCache;
+}
+
+/** camelCase field → snake_case column */
+const FIELD_COL: Record<string, string> = {
+  analyticsId:        'analytics_id',
+  adSlotLeaderboard:  'ad_slot_leaderboard',
+  adSlotRectangle:    'ad_slot_rectangle',
+  adSlotLargeRectangle: 'ad_slot_large_rectangle',
+  adSlotBanner:       'ad_slot_banner',
+};
 
 /** Fetch the single site settings row */
 export async function getSiteSettings() {
-  const rows = await db.select().from(siteSettings).limit(1);
-  return rows[0] ?? null;
+  // Always fetch core columns via Drizzle ORM
+  const rows = await db
+    .select({
+      id:                 siteSettings.id,
+      siteName:           siteSettings.siteName,
+      siteDescription:    siteSettings.siteDescription,
+      adsensePublisherId: siteSettings.adsensePublisherId,
+      adsenseAutoAds:     siteSettings.adsenseAutoAds,
+      headerCode:         siteSettings.headerCode,
+      footerCode:         siteSettings.footerCode,
+      customCss:          siteSettings.customCss,
+      maintenanceMode:    siteSettings.maintenanceMode,
+      updatedAt:          siteSettings.updatedAt,
+    })
+    .from(siteSettings)
+    .limit(1);
+
+  if (!rows.length) return null;
+
+  const base = rows[0];
+
+  // Build result with optional columns defaulting to empty string
+  // (these are not in the Drizzle schema until migration 0002 is applied)
+  const result: typeof base & {
+    analyticsId: string;
+    adSlotLeaderboard: string;
+    adSlotRectangle: string;
+    adSlotLargeRectangle: string;
+    adSlotBanner: string;
+  } = {
+    ...base,
+    analyticsId:          '',
+    adSlotLeaderboard:    '',
+    adSlotRectangle:      '',
+    adSlotLargeRectangle: '',
+    adSlotBanner:         '',
+  };
+
+  // If optional columns exist in the DB, fetch them with a raw query
+  const optCols = await getOptionalCols();
+  if (optCols.size > 0) {
+    const colList = [...optCols].join(', ');
+    try {
+      const extra = await db.execute(
+        sql`SELECT id, ${sql.raw(colList)} FROM site_settings WHERE id = ${base.id} LIMIT 1`
+      ) as unknown as Array<Record<string, string>>;
+      if (Array.isArray(extra) && extra.length) {
+        const r = extra[0];
+        if (optCols.has('analytics_id'))            result.analyticsId          = r.analytics_id          ?? '';
+        if (optCols.has('ad_slot_leaderboard'))     result.adSlotLeaderboard    = r.ad_slot_leaderboard    ?? '';
+        if (optCols.has('ad_slot_rectangle'))       result.adSlotRectangle      = r.ad_slot_rectangle      ?? '';
+        if (optCols.has('ad_slot_large_rectangle')) result.adSlotLargeRectangle = r.ad_slot_large_rectangle ?? '';
+        if (optCols.has('ad_slot_banner'))          result.adSlotBanner         = r.ad_slot_banner         ?? '';
+      }
+    } catch { /* ignore — optional cols */ }
+  }
+
+  return result;
 }
 
-/** Update site settings (upsert pattern) */
+/** Update site settings (upsert) — only writes columns that exist in the live DB */
 export async function upsertSiteSettings(
-  data: Partial<typeof siteSettings.$inferInsert>,
+  data: Partial<typeof siteSettings.$inferInsert> & {
+    // Optional fields managed via raw SQL (not in Drizzle schema until migration 0002)
+    analyticsId?: string;
+    adSlotLeaderboard?: string;
+    adSlotRectangle?: string;
+    adSlotLargeRectangle?: string;
+    adSlotBanner?: string;
+  },
 ) {
   const existing = await getSiteSettings();
 
-  if (existing) {
-    const rows = await db
-      .update(siteSettings)
-      .set({ ...data, updatedAt: new Date() })
-      .where(eq(siteSettings.id, existing.id))
-      .returning();
-    return rows[0];
-  } else {
-    const rows = await db.insert(siteSettings).values(data).returning();
-    return rows[0];
+  // Separate core fields (always writable) from optional fields
+  const coreData: Partial<typeof siteSettings.$inferInsert> = {};
+  const optData: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(data)) {
+    if (OPTIONAL_FIELDS.has(key)) {
+      optData[key] = value;
+    } else {
+      (coreData as Record<string, unknown>)[key] = value;
+    }
   }
+
+  if (existing) {
+    // UPDATE core columns via Drizzle ORM
+    if (Object.keys(coreData).length > 0) {
+      await db
+        .update(siteSettings)
+        .set({ ...coreData, updatedAt: new Date() })
+        .where(eq(siteSettings.id, existing.id));
+    }
+
+    // UPDATE optional columns one-by-one via raw SQL (only if they exist in the DB)
+    const optCols = await getOptionalCols();
+    for (const [field, value] of Object.entries(optData)) {
+      const col = FIELD_COL[field];
+      if (!col || !optCols.has(col)) continue;
+      try {
+        await db.execute(
+          sql`UPDATE site_settings SET ${sql.raw(col)} = ${value as string} WHERE id = ${existing.id}`
+        );
+      } catch { /* ignore — optional col may still be missing */ }
+    }
+  } else {
+    // INSERT — only use core fields to guarantee compatibility
+    await db.insert(siteSettings).values(coreData as typeof siteSettings.$inferInsert);
+  }
+
+  return (await getSiteSettings()) ?? ({} as typeof siteSettings.$inferSelect);
 }
 
 // ─// ─── Page Contents ────────────────────────────────────────────────────────
