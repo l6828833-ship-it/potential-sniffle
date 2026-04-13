@@ -8,6 +8,7 @@ import { useEffect } from "react";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { getCodeInjection } from "./lib/adminStore";
+import { fetchSettings } from "./lib/api";
 
 // Public Pages
 import Home from "./pages/Home";
@@ -35,59 +36,84 @@ import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminPages from "./pages/admin/AdminPages";
 import AdminCodeInjection from "./pages/admin/AdminCodeInjection";
 
-// Code injection: apply header/footer/CSS from admin settings on every page load
+// ─── Code Injection Helpers ───────────────────────────────────────────────────
+
+interface CodeBundle {
+  headerCode: string;
+  footerCode: string;
+  customCSS: string;
+}
+
+/** Apply header/footer scripts and custom CSS to the live document */
+function applyCode(code: CodeBundle) {
+  // Header code (scripts, AdSense, analytics)
+  if (code.headerCode && !document.getElementById('quizoi-header-inject')) {
+    const marker = document.createElement('div');
+    marker.id = 'quizoi-header-inject';
+    marker.style.display = 'none';
+    document.head.appendChild(marker);
+
+    const container = document.createElement('div');
+    container.innerHTML = code.headerCode;
+    // Clone script tags so they actually execute (innerHTML doesn't run scripts)
+    container.querySelectorAll('script').forEach(oldScript => {
+      const newScript = document.createElement('script');
+      Array.from(oldScript.attributes).forEach(attr =>
+        newScript.setAttribute(attr.name, attr.value)
+      );
+      newScript.textContent = oldScript.textContent;
+      document.head.appendChild(newScript);
+      oldScript.remove();
+    });
+    // Append remaining non-script elements (e.g. link, meta)
+    Array.from(container.children).forEach(el => document.head.appendChild(el));
+  }
+
+  // Footer code
+  if (code.footerCode && !document.getElementById('quizoi-footer-inject')) {
+    const container = document.createElement('div');
+    container.id = 'quizoi-footer-inject';
+    container.innerHTML = code.footerCode;
+    container.querySelectorAll('script').forEach(oldScript => {
+      const newScript = document.createElement('script');
+      Array.from(oldScript.attributes).forEach(attr =>
+        newScript.setAttribute(attr.name, attr.value)
+      );
+      newScript.textContent = oldScript.textContent;
+      document.body.appendChild(newScript);
+      oldScript.remove();
+    });
+    document.body.appendChild(container);
+  }
+
+  // Custom CSS
+  if (code.customCSS) {
+    let styleEl = document.getElementById('quizoi-custom-css') as HTMLStyleElement | null;
+    if (!styleEl) {
+      styleEl = document.createElement('style');
+      styleEl.id = 'quizoi-custom-css';
+      document.head.appendChild(styleEl);
+    }
+    styleEl.textContent = code.customCSS;
+  }
+}
+
+// Code injection: apply header/footer/CSS from admin settings on every page load.
+// Reads from the API (database) first; falls back to localStorage if API is unavailable.
 function CodeInjectionEffect() {
   useEffect(() => {
-    const code = getCodeInjection();
-
-    // Header code (scripts, AdSense, analytics)
-    if (code.headerCode) {
-      const existing = document.getElementById('quizoi-header-inject');
-      if (!existing) {
-        const container = document.createElement('div');
-        container.id = 'quizoi-header-inject';
-        container.innerHTML = code.headerCode;
-        // Properly execute scripts
-        container.querySelectorAll('script').forEach(oldScript => {
-          const newScript = document.createElement('script');
-          Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
-          newScript.textContent = oldScript.textContent;
-          document.head.appendChild(newScript);
-          oldScript.remove();
+    fetchSettings()
+      .then(apiSettings => {
+        applyCode({
+          headerCode: apiSettings.headerCode ?? '',
+          footerCode: apiSettings.footerCode ?? '',
+          customCSS: (apiSettings as typeof apiSettings & { customCss?: string }).customCss ?? '',
         });
-        // Append non-script elements to head
-        Array.from(container.children).forEach(el => document.head.appendChild(el));
-      }
-    }
-
-    // Footer code
-    if (code.footerCode) {
-      const existing = document.getElementById('quizoi-footer-inject');
-      if (!existing) {
-        const container = document.createElement('div');
-        container.id = 'quizoi-footer-inject';
-        container.innerHTML = code.footerCode;
-        container.querySelectorAll('script').forEach(oldScript => {
-          const newScript = document.createElement('script');
-          Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
-          newScript.textContent = oldScript.textContent;
-          document.body.appendChild(newScript);
-          oldScript.remove();
-        });
-        document.body.appendChild(container);
-      }
-    }
-
-    // Custom CSS
-    if (code.customCSS) {
-      let styleEl = document.getElementById('quizoi-custom-css') as HTMLStyleElement | null;
-      if (!styleEl) {
-        styleEl = document.createElement('style');
-        styleEl.id = 'quizoi-custom-css';
-        document.head.appendChild(styleEl);
-      }
-      styleEl.textContent = code.customCSS;
-    }
+      })
+      .catch(() => {
+        // API unavailable (e.g. static deployment) — fall back to localStorage
+        applyCode(getCodeInjection());
+      });
   }, []);
 
   return null;

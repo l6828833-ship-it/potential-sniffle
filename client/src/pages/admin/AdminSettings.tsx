@@ -22,8 +22,9 @@ export default function AdminSettings() {
     adminFetchSettings()
       .then(s => {
         if (s && typeof s === 'object') {
-          // Merge fetched settings with defaults so missing fields never cause null errors
-          setSettings(prev => ({ ...prev, ...s }));
+          // Strip server-only fields before storing in state
+          const { id: _id, updatedAt: _updatedAt, ...safe } = s as typeof s & { id?: string; updatedAt?: string };
+          setSettings(prev => ({ ...prev, ...safe }));
         }
       })
       .catch(console.error);
@@ -38,8 +39,14 @@ export default function AdminSettings() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const updated = await adminSaveSettings(settings);
-      setSettings(updated);
+      // Strip server-only fields (id, updatedAt) before sending to the API
+      const { ...payload } = settings as SiteSettings & { id?: string; updatedAt?: string };
+      delete (payload as Record<string, unknown>).id;
+      delete (payload as Record<string, unknown>).updatedAt;
+      const updated = await adminSaveSettings(payload);
+      // Merge response but never store id in settings state
+      const { id: _id, updatedAt: _updatedAt, ...safeUpdated } = updated as SiteSettings & { id?: string; updatedAt?: string };
+      setSettings(prev => ({ ...prev, ...safeUpdated }));
       toast.success('Settings saved successfully');
     } catch (e: unknown) {
       toast.error((e as Error).message);

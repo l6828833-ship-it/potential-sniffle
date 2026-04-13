@@ -83,6 +83,9 @@ export interface SiteSettings {
   adSlotRectangle?: string;
   adSlotLargeRectangle?: string;
   adSlotBanner?: string;
+  // Server-only fields (returned by API but should not be sent back)
+  id?: string;
+  updatedAt?: string;
 }
 
 export interface DailyStats {

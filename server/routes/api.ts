@@ -714,9 +714,22 @@ apiRouter.get('/admin/settings', requireAdmin, async (_req, res) => {
 
 apiRouter.patch('/admin/settings', requireAdmin, async (req, res) => {
   try {
-    const settings = await upsertSiteSettings(req.body);
+    // Whitelist only known DB columns — strip 'id', 'updatedAt', and any unknown fields
+    // that the client may accidentally send (e.g. the 'id' returned from a previous fetch).
+    const ALLOWED_FIELDS = new Set([
+      'siteName', 'siteDescription', 'adsensePublisherId', 'adsenseAutoAds',
+      'analyticsId', 'headerCode', 'footerCode', 'customCss', 'maintenanceMode',
+      'adSlotLeaderboard', 'adSlotRectangle', 'adSlotLargeRectangle', 'adSlotBanner',
+    ]);
+    const safe: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(req.body)) {
+      if (ALLOWED_FIELDS.has(key)) safe[key] = value;
+    }
+    const settings = await upsertSiteSettings(safe as Parameters<typeof upsertSiteSettings>[0]);
     res.json(settings);
   } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[PATCH /admin/settings]', msg);
     res.status(500).json({ error: 'Failed to update settings' });
   }
 });

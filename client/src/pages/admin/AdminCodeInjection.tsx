@@ -38,6 +38,17 @@ export default function AdminCodeInjection() {
       })
       .catch(console.error);
   }, []);
+
+  // Sync code to localStorage so CodeInjectionEffect in App.tsx picks it up on next load
+  const syncToLocalStorage = (c: typeof code) => {
+    try {
+      localStorage.setItem('quizoi_admin_code', JSON.stringify({
+        headerCode: c.headerCode,
+        footerCode: c.footerCode,
+        customCSS: c.customCss,  // Note: adminStore uses 'customCSS' (capital S)
+      }));
+    } catch { /* ignore */ }
+  };
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<'header' | 'footer' | 'css'>('header');
   const [copied, setCopied] = useState<string | null>(null);
@@ -45,7 +56,15 @@ export default function AdminCodeInjection() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await adminSaveSettings(code);
+      // Only send the three code fields — never send id or other settings
+      const payload = {
+        headerCode: code.headerCode,
+        footerCode: code.footerCode,
+        customCss: code.customCss,
+      };
+      await adminSaveSettings(payload);
+      // Also persist to localStorage so CodeInjectionEffect applies on next page load
+      syncToLocalStorage(code);
       toast.success('Code injection saved');
     } catch (e: unknown) {
       toast.error((e as Error).message);
