@@ -17,6 +17,11 @@ const __dirname = path.dirname(__filename);
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const SITE_URL = process.env.SITE_URL || "https://quizoi.com";
+// ADSENSE_PUBLISHER_ID env var is the primary source for the AdSense script.
+// It is used even if the DB has no settings row yet — which is the most
+// common reason AdSense verification fails on fresh deployments.
+// Set this in Railway: ADSENSE_PUBLISHER_ID=ca-pub-XXXXXXXXXXXXXXXX
+const ADSENSE_PUBLISHER_ID_ENV = process.env.ADSENSE_PUBLISHER_ID || "";
 const DEFAULT_TITLE = "Quizoi — Challenge Your Mind";
 const DEFAULT_DESCRIPTION =
   "Test your knowledge with thousands of quizzes across 10+ categories. Science, history, music, sports, geography and more. Only the sharpest minds score 10/10.";
@@ -225,9 +230,17 @@ async function buildHeadInjection(
   // ── Scripts ──────────────────────────────────────────────────────────────
   const scriptParts: string[] = [];
 
-  if (settings?.adsensePublisherId) {
+  // Resolve publisher ID: env var takes priority, then DB value.
+  // This ensures AdSense script is injected even before the admin
+  // has saved settings in the DB (critical for first-time verification).
+  const publisherId =
+    ADSENSE_PUBLISHER_ID_ENV ||
+    settings?.adsensePublisherId ||
+    "";
+
+  if (publisherId) {
     scriptParts.push(
-      `  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${settings.adsensePublisherId}" crossorigin="anonymous"></script>`
+      `  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${publisherId}" crossorigin="anonymous"></script>`
     );
   }
 
@@ -400,6 +413,15 @@ async function startServer() {
     console.log(`   API available at http://localhost:${port}/api`);
     console.log(`   Sitemap: http://localhost:${port}/sitemap.xml`);
     console.log(`   Robots:  http://localhost:${port}/robots.txt`);
+    if (ADSENSE_PUBLISHER_ID_ENV) {
+      console.log(`   AdSense: ${ADSENSE_PUBLISHER_ID_ENV} (from ADSENSE_PUBLISHER_ID env var) ✅`);
+    } else {
+      console.warn(
+        "\n⚠️  WARNING: ADSENSE_PUBLISHER_ID env var is not set.\n" +
+          "   AdSense script will only be injected if a publisher ID is saved in Admin → Settings.\n" +
+          "   For reliable AdSense verification, set: ADSENSE_PUBLISHER_ID=ca-pub-XXXXXXXXXXXXXXXX\n"
+      );
+    }
     if (!process.env.DATABASE_URL) {
       console.warn(
         "\n⚠️  WARNING: DATABASE_URL is not set. API routes will fail.\n" +
