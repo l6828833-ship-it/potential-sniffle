@@ -1,5 +1,5 @@
 // Categories Page — Quizoi Light Theme
-import { Link } from 'wouter';
+// NOTE: All navigation uses plain <a href> tags for full HTTP page reload.
 import { LayoutGrid, ChevronRight } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -24,7 +24,7 @@ export default function Categories() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {categories.map(cat => (
-              <Link
+              <a
                 key={cat.slug}
                 href={`/category/${cat.slug}`}
                 className="group relative overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm transition-all duration-300 hover:border-primary/20 hover:shadow-md"
@@ -51,7 +51,7 @@ export default function Categories() {
                   <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{cat.description}</p>
                   <span className="text-xs text-primary font-semibold">{cat.quizCount} quizzes</span>
                 </div>
-              </Link>
+              </a>
             ))}
           </div>
         </div>

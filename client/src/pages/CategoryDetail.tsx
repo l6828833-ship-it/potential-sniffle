@@ -2,7 +2,7 @@
 import { useParams } from 'wouter';
 import { useState, useEffect } from 'react';
 import { ChevronLeft } from 'lucide-react';
-import { Link } from 'wouter';
+// NOTE: All navigation uses plain <a href> tags for full HTTP page reload.
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import QuizCard from '@/components/QuizCard';
@@ -63,9 +63,9 @@ export default function CategoryDetail() {
           <img src={category.emoji} alt="" className="w-full h-full object-cover" />
         </div>
         <div className="relative container py-12">
-          <Link href="/categories" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors mb-4">
+          <a href="/categories" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors mb-4">
             <ChevronLeft className="w-4 h-4" /> All Categories
-          </Link>
+          </a>
           <div className="flex items-center gap-3 mb-3">
             <span className="text-4xl">{category.emoji}</span>
             <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground">{category.name}</h1>

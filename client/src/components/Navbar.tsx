@@ -1,6 +1,8 @@
 // Navbar — Quizoi Light Theme
 // White background, deep navy text, vivid blue accents
-import { Link, useLocation } from 'wouter';
+// NOTE: All navigation uses plain <a href> tags (full HTTP page reload).
+// This ensures every page visit triggers a fresh AdSense auction.
+// Never use Wouter <Link> or router.push() in this file.
 import { Brain, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 
@@ -11,14 +13,15 @@ const navLinks = [
 ];
 
 export default function Navbar() {
-  const [location] = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  // Use window.location.pathname for active state — works without Wouter
+  const location = typeof window !== 'undefined' ? window.location.pathname : '/';
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-gray-100 bg-white shadow-sm">
       <div className="container flex h-16 items-center justify-between">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2.5 group">
+        <a href="/" className="flex items-center gap-2.5 group">
           <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shadow-sm">
             <Brain className="w-4 h-4 text-white" />
           </div>
@@ -26,12 +29,12 @@ export default function Navbar() {
             <span className="text-foreground">Quiz</span>
             <span className="text-primary">oi</span>
           </span>
-        </Link>
+        </a>
 
         {/* Desktop Nav */}
         <nav className="hidden md:flex items-center gap-1">
           {navLinks.map(link => (
-            <Link
+            <a
               key={link.href}
               href={link.href}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
@@ -41,18 +44,18 @@ export default function Navbar() {
               }`}
             >
               {link.label}
-            </Link>
+            </a>
           ))}
         </nav>
 
         {/* Desktop CTA */}
         <div className="hidden md:flex items-center gap-3">
-          <Link
+          <a
             href="/"
             className="px-5 py-2 bg-primary text-white rounded-xl text-sm font-display font-semibold hover:bg-primary/90 transition-all duration-200 shadow-sm"
           >
             Start a Quiz
-          </Link>
+          </a>
         </div>
 
         {/* Mobile Menu Toggle */}
@@ -70,10 +73,9 @@ export default function Navbar() {
         <div className="md:hidden border-t border-gray-100 bg-white">
           <nav className="container py-4 flex flex-col gap-1">
             {navLinks.map(link => (
-              <Link
+              <a
                 key={link.href}
                 href={link.href}
-                onClick={() => setMobileOpen(false)}
                 className={`px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
                   location === link.href
                     ? 'text-primary bg-accent font-semibold'
@@ -81,15 +83,14 @@ export default function Navbar() {
                 }`}
               >
                 {link.label}
-              </Link>
+              </a>
             ))}
-            <Link
+            <a
               href="/"
-              onClick={() => setMobileOpen(false)}
               className="mt-2 px-4 py-3 bg-primary text-white rounded-xl text-sm font-display font-semibold text-center hover:bg-primary/90 transition-all duration-200"
             >
               Start a Quiz
-            </Link>
+            </a>
           </nav>
         </div>
       )}

@@ -1,5 +1,5 @@
 // 404 Not Found — Quizoi Light Theme
-import { Link } from 'wouter';
+// NOTE: All navigation uses plain <a href> tags for full HTTP page reload.
 import { Brain, Home } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -16,13 +16,13 @@ export default function NotFound() {
           <p className="text-muted-foreground mb-8">
             Looks like this page went off-script. The quiz you're looking for doesn't exist — but there are plenty of great ones waiting for you!
           </p>
-          <Link
+          <a
             href="/"
             className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white font-display font-bold rounded-xl hover:bg-primary/90 transition-all duration-200 shadow-sm"
           >
             <Home className="w-4 h-4" />
             Back to Home
-          </Link>
+          </a>
         </div>
       </main>
       <Footer />

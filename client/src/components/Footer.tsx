@@ -1,7 +1,8 @@
 // Footer — Quizoi Light Theme
 // AdSense compliance: Privacy Policy, Terms of Service, About/Contact links
-import { Link } from 'wouter';
+// NOTE: All navigation uses plain <a href> tags (full HTTP page reload).
 import { Brain } from 'lucide-react';
+
 // Static category list for footer (no API call needed — just nav links)
 const FOOTER_CATEGORIES = [
   { slug: 'science',       name: 'Science',       emoji: '🔬' },
@@ -19,7 +20,7 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="md:col-span-1">
-            <Link href="/" className="flex items-center gap-2 mb-4">
+            <a href="/" className="flex items-center gap-2 mb-4">
               <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
                 <Brain className="w-4 h-4 text-white" />
               </div>
@@ -27,7 +28,7 @@ export default function Footer() {
                 <span className="text-foreground">Quiz</span>
                 <span className="text-primary">oi</span>
               </span>
-            </Link>
+            </a>
             <p className="text-sm text-muted-foreground leading-relaxed">
               Challenge yourself with thousands of quizzes across 10+ categories. Learn something new with every question.
             </p>
@@ -39,12 +40,12 @@ export default function Footer() {
             <ul className="space-y-2">
               {FOOTER_CATEGORIES.slice(0, 6).map(cat => (
                 <li key={cat.slug}>
-                  <Link
+                  <a
                     href={`/category/${cat.slug}`}
                     className="text-sm text-muted-foreground hover:text-primary transition-colors duration-200"
                   >
                     {cat.emoji} {cat.name}
-                  </Link>
+                  </a>
                 </li>
               ))}
             </ul>
@@ -54,10 +55,10 @@ export default function Footer() {
           <div>
             <h4 className="font-display font-semibold text-sm text-foreground mb-4 uppercase tracking-wider">Quick Links</h4>
             <ul className="space-y-2">
-              <li><Link href="/" className="text-sm text-muted-foreground hover:text-primary transition-colors">Home</Link></li>
-              <li><Link href="/categories" className="text-sm text-muted-foreground hover:text-primary transition-colors">All Categories</Link></li>
-              <li><Link href="/about" className="text-sm text-muted-foreground hover:text-primary transition-colors">About Us</Link></li>
-              <li><Link href="/contact" className="text-sm text-muted-foreground hover:text-primary transition-colors">Contact</Link></li>
+              <li><a href="/" className="text-sm text-muted-foreground hover:text-primary transition-colors">Home</a></li>
+              <li><a href="/categories" className="text-sm text-muted-foreground hover:text-primary transition-colors">All Categories</a></li>
+              <li><a href="/about" className="text-sm text-muted-foreground hover:text-primary transition-colors">About Us</a></li>
+              <li><a href="/contact" className="text-sm text-muted-foreground hover:text-primary transition-colors">Contact</a></li>
             </ul>
           </div>
 
@@ -65,8 +66,8 @@ export default function Footer() {
           <div>
             <h4 className="font-display font-semibold text-sm text-foreground mb-4 uppercase tracking-wider">Legal</h4>
             <ul className="space-y-2">
-              <li><Link href="/privacy" className="text-sm text-muted-foreground hover:text-primary transition-colors">Privacy Policy</Link></li>
-              <li><Link href="/terms" className="text-sm text-muted-foreground hover:text-primary transition-colors">Terms of Service</Link></li>
+              <li><a href="/privacy" className="text-sm text-muted-foreground hover:text-primary transition-colors">Privacy Policy</a></li>
+              <li><a href="/terms" className="text-sm text-muted-foreground hover:text-primary transition-colors">Terms of Service</a></li>
             </ul>
           </div>
         </div>

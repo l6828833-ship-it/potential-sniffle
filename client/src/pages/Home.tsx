@@ -1,7 +1,7 @@
 // Home — Quizoi Light Theme
 // White background, blue primary, clean card grid, hero with subtle gradient
 import { useState, useEffect } from 'react';
-import { Link } from 'wouter';
+// NOTE: All navigation uses plain <a href> tags for full HTTP page reload.
 import { Zap, Users, LayoutGrid, TrendingUp, ChevronRight, Sparkles, Loader2 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -67,12 +67,12 @@ export default function Home() {
               >
                 Start Playing
               </a>
-              <Link
+              <a
                 href="/categories"
                 className="px-6 py-3 bg-white text-foreground border border-gray-200 font-display font-medium rounded-xl hover:bg-gray-50 transition-all duration-200 shadow-sm"
               >
                 Browse Categories
-              </Link>
+              </a>
             </div>
             {/* Stats */}
             <div className="flex flex-wrap gap-6 md:gap-10">
@@ -208,13 +208,13 @@ export default function Home() {
                 <LayoutGrid className="w-5 h-5 text-primary" />
                 <h2 className="font-display text-xl font-bold text-foreground">Browse by Category</h2>
               </div>
-              <Link href="/categories" className="text-sm text-primary hover:text-primary/80 flex items-center gap-1 transition-colors font-medium">
+              <a href="/categories" className="text-sm text-primary hover:text-primary/80 flex items-center gap-1 transition-colors font-medium">
                 View All <ChevronRight className="w-4 h-4" />
-              </Link>
+              </a>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
               {categories.map(cat => (
-                <Link
+                <a
                   key={cat.slug}
                   href={`/category/${cat.slug}`}
                   className="group relative overflow-hidden rounded-xl border border-gray-100 bg-white p-4 transition-all duration-300 hover:border-primary/20 hover:shadow-md hover:bg-blue-50/30"
@@ -222,7 +222,7 @@ export default function Home() {
                   <div className="text-2xl mb-2">{cat.emoji}</div>
                   <h3 className="font-display text-sm font-semibold text-foreground group-hover:text-primary transition-colors">{cat.name}</h3>
                   <p className="text-xs text-muted-foreground mt-1">{cat.quizCount} quizzes</p>
-                </Link>
+                </a>
               ))}
             </div>
           </section>

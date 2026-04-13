@@ -1,6 +1,6 @@
 // QuizCard — Quizoi Light Theme
 // White cards with subtle shadow, blue accents, clean hover states
-import { Link } from 'wouter';
+// NOTE: Uses plain <a href> for full HTTP page reload on quiz start.
 import { Play, Users } from 'lucide-react';
 import type { Quiz } from '@/lib/api';
 import { formatPlayCount } from '@/lib/api';
@@ -11,12 +11,9 @@ interface QuizCardProps {
 }
 
 export default function QuizCard({ quiz, featured = false }: QuizCardProps) {
-  // Category display uses categoryId as fallback since QuizCard receives pre-fetched quiz data
-  const category = null; // Category info not included in quiz list — use categoryId
-
   if (featured) {
     return (
-      <Link href={`/quiz/${quiz.slug}/start`} className="block group">
+      <a href={`/quiz/${quiz.slug}/start`} className="block group">
         <div className="relative overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition-all duration-300 hover:shadow-md hover:border-primary/20">
           <div className="flex flex-col md:flex-row">
             {/* Image */}
@@ -28,7 +25,6 @@ export default function QuizCard({ quiz, featured = false }: QuizCardProps) {
                 loading="lazy"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent md:bg-gradient-to-r md:from-transparent md:to-black/20" />
-              
             </div>
             {/* Content */}
             <div className="p-6 md:w-1/2 flex flex-col justify-center">
@@ -53,12 +49,12 @@ export default function QuizCard({ quiz, featured = false }: QuizCardProps) {
             </div>
           </div>
         </div>
-      </Link>
+      </a>
     );
   }
 
   return (
-    <Link href={`/quiz/${quiz.slug}/start`} className="block group">
+    <a href={`/quiz/${quiz.slug}/start`} className="block group">
       <div className="relative overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm transition-all duration-300 hover:shadow-md hover:border-primary/20 h-full">
         {/* Image */}
         <div className="relative aspect-video overflow-hidden">
@@ -69,7 +65,6 @@ export default function QuizCard({ quiz, featured = false }: QuizCardProps) {
             loading="lazy"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
-          
           <div className="absolute bottom-2.5 right-2.5 px-2 py-0.5 bg-black/50 backdrop-blur-sm rounded-md text-[11px] text-white font-medium">
             {quiz.questionCount}Q
           </div>
@@ -91,6 +86,6 @@ export default function QuizCard({ quiz, featured = false }: QuizCardProps) {
           </div>
         </div>
       </div>
-    </Link>
+    </a>
   );
 }
