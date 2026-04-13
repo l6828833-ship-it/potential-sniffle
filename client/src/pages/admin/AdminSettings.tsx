@@ -155,7 +155,7 @@ export default function AdminSettings() {
               </p>
               <p className={`text-xs mt-0.5 ${settings.adsensePublisherId ? 'text-emerald-600' : 'text-amber-600'}`}>
                 {settings.adsensePublisherId
-                  ? `Publisher ID: ${settings.adsensePublisherId}`
+                  ? `Publisher ID: ${settings.adsensePublisherId} — Script is injected into every page's <head> by the server so Google can verify your site.`
                   : 'Enter your Publisher ID below to enable ads. Ad slots are already placed on all quiz pages.'}
               </p>
             </div>

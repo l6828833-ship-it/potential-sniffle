@@ -22,18 +22,32 @@ const GA4_TEMPLATE = `<!-- Google Analytics 4 -->
 const PREBID_TEMPLATE = `<!-- Prebid.js Header Bidding -->
 <script async src="https://cdn.jsdelivr.net/npm/prebid.js@latest/dist/not-for-prod/prebid.js"></script>`;
 
+/** Count non-empty lines in a code string */
+function countLines(s: string) {
+  return s.split('\n').filter(l => l.trim().length > 0).length;
+}
+
+/** Count <script> blocks in a code string */
+function countScripts(s: string) {
+  return (s.match(/<script/gi) ?? []).length;
+}
+
 export default function AdminCodeInjection() {
   const [code, setCode] = useState<CodeInjection>({ headerCode: '', footerCode: '', customCss: '' });
+  // Track the last saved state to show "unsaved changes" indicator
+  const [savedCode, setSavedCode] = useState<CodeInjection>({ headerCode: '', footerCode: '', customCss: '' });
 
   useEffect(() => {
     adminFetchSettings()
       .then(s => {
         if (s && typeof s === 'object') {
-          setCode({
+          const fetched = {
             headerCode: s.headerCode ?? '',
             footerCode: s.footerCode ?? '',
             customCss: s.customCss ?? '',
-          });
+          };
+          setCode(fetched);
+          setSavedCode(fetched); // mark as saved (matches DB)
         }
       })
       .catch(console.error);
@@ -65,6 +79,7 @@ export default function AdminCodeInjection() {
       await adminSaveSettings(payload);
       // Also persist to localStorage so CodeInjectionEffect applies on next page load
       syncToLocalStorage(code);
+      setSavedCode({ ...code }); // update saved baseline
       toast.success('Code injection saved');
     } catch (e: unknown) {
       toast.error((e as Error).message);
@@ -208,12 +223,18 @@ export default function AdminCodeInjection() {
                 className="w-full px-4 py-3 rounded-xl bg-gray-950 border border-gray-800 text-sm text-emerald-300 font-mono focus:outline-none focus:border-primary/50 transition-colors resize-none"
                 spellCheck={false}
               />
-              <div className="flex items-center gap-2 mt-2">
+              <div className="flex items-center gap-3 mt-2 flex-wrap">
                 {code.headerCode ? (
-                  <span className="flex items-center gap-1 text-xs text-emerald-600">
-                    <CheckCircle2 className="w-3 h-3" />
-                    {code.headerCode.split('\n').length} lines of header code active
-                  </span>
+                  <>
+                    <span className="flex items-center gap-1 text-xs text-emerald-600">
+                      <CheckCircle2 className="w-3 h-3" />
+                      {countLines(code.headerCode)} lines
+                      {countScripts(code.headerCode) > 0 && ` · ${countScripts(code.headerCode)} script${countScripts(code.headerCode) > 1 ? 's' : ''}`}
+                    </span>
+                    {code.headerCode !== savedCode.headerCode && (
+                      <span className="text-xs text-amber-600 font-medium">● Unsaved changes</span>
+                    )}
+                  </>
                 ) : (
                   <span className="text-xs text-muted-foreground">No header code configured</span>
                 )}
@@ -238,12 +259,18 @@ export default function AdminCodeInjection() {
                 className="w-full px-4 py-3 rounded-xl bg-gray-950 border border-gray-800 text-sm text-emerald-300 font-mono focus:outline-none focus:border-primary/50 transition-colors resize-none"
                 spellCheck={false}
               />
-              <div className="flex items-center gap-2 mt-2">
+              <div className="flex items-center gap-3 mt-2 flex-wrap">
                 {code.footerCode ? (
-                  <span className="flex items-center gap-1 text-xs text-emerald-600">
-                    <CheckCircle2 className="w-3 h-3" />
-                    {code.footerCode.split('\n').length} lines of footer code active
-                  </span>
+                  <>
+                    <span className="flex items-center gap-1 text-xs text-emerald-600">
+                      <CheckCircle2 className="w-3 h-3" />
+                      {countLines(code.footerCode)} lines
+                      {countScripts(code.footerCode) > 0 && ` · ${countScripts(code.footerCode)} script${countScripts(code.footerCode) > 1 ? 's' : ''}`}
+                    </span>
+                    {code.footerCode !== savedCode.footerCode && (
+                      <span className="text-xs text-amber-600 font-medium">● Unsaved changes</span>
+                    )}
+                  </>
                 ) : (
                   <span className="text-xs text-muted-foreground">No footer code configured</span>
                 )}
@@ -267,12 +294,17 @@ export default function AdminCodeInjection() {
                 className="w-full px-4 py-3 rounded-xl bg-gray-950 border border-gray-800 text-sm text-blue-300 font-mono focus:outline-none focus:border-primary/50 transition-colors resize-none"
                 spellCheck={false}
               />
-              <div className="flex items-center gap-2 mt-2">
+              <div className="flex items-center gap-3 mt-2 flex-wrap">
                 {code.customCss ? (
-                  <span className="flex items-center gap-1 text-xs text-emerald-600">
-                    <CheckCircle2 className="w-3 h-3" />
-                    {code.customCss.split('\n').length} lines of custom CSS active
-                  </span>
+                  <>
+                    <span className="flex items-center gap-1 text-xs text-emerald-600">
+                      <CheckCircle2 className="w-3 h-3" />
+                      {countLines(code.customCss)} lines of custom CSS
+                    </span>
+                    {code.customCss !== savedCode.customCss && (
+                      <span className="text-xs text-amber-600 font-medium">● Unsaved changes</span>
+                    )}
+                  </>
                 ) : (
                   <span className="text-xs text-muted-foreground">No custom CSS configured</span>
                 )}
@@ -287,9 +319,9 @@ export default function AdminCodeInjection() {
         <h3 className="text-sm font-semibold text-blue-900 mb-2">How Code Injection Works</h3>
         <div className="space-y-1.5">
           {[
-            'Code is saved to localStorage and applied on every page load',
-            'Header code is injected into <head> via a React effect on app mount',
-            'Footer code is injected at the end of <body> similarly',
+            'Code is saved to the database and applied on every page load',
+            'Header code is injected into <head> by the server — visible to Google and all crawlers',
+            'Footer code is injected at the end of <body> via a React effect',
             'Custom CSS is injected as a <style> tag in <head>',
             'To remove code, clear the field and click Save',
           ].map((item, i) => (

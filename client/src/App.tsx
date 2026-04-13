@@ -55,8 +55,16 @@ function applyCode(code: CodeBundle) {
 
     const container = document.createElement('div');
     container.innerHTML = code.headerCode;
-    // Clone script tags so they actually execute (innerHTML doesn't run scripts)
+    // Clone script tags so they actually execute (innerHTML doesn't run scripts).
+    // Skip AdSense scripts — they are already injected server-side into the HTML
+    // so Google's crawler sees them in the raw source (required for verification).
     container.querySelectorAll('script').forEach(oldScript => {
+      const src = oldScript.getAttribute('src') ?? '';
+      if (src.includes('pagead2.googlesyndication.com')) {
+        // Already in <head> via server-side injection — skip to avoid duplicate load
+        oldScript.remove();
+        return;
+      }
       const newScript = document.createElement('script');
       Array.from(oldScript.attributes).forEach(attr =>
         newScript.setAttribute(attr.name, attr.value)
